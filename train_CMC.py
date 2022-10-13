@@ -100,6 +100,8 @@ def parse_args():
     parser.add_argument('--max_step', type=int, default=5)
     parser.add_argument('--projection_range', type=int, default=50)
     parser.add_argument('--dont_search', action='store_true')
+    parser.add_argument('--max_range', type=float, default=1.5)
+    parser.add_argument('--epsilon', type=float, default=0.1)
 
     args = parser.parse_args()
 
