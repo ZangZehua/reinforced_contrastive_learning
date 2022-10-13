@@ -95,7 +95,7 @@ def parse_args():
     parser.add_argument('--rl_update_interval', type=int, default=2000)
     parser.add_argument('--rl_update_episode', type=int, default=50)
     parser.add_argument('--rl_action_std', type=float, default=0.6)
-    parser.add_argument('--train_episodes', type=int, default=30)
+    parser.add_argument('--train_episodes', type=int, default=100)
     parser.add_argument('--reward_type', type=str, default="infoNCE", choices=["cosine_dist", "infoNCE"])
     parser.add_argument('--max_step', type=int, default=5)
     parser.add_argument('--projection_range', type=int, default=50)

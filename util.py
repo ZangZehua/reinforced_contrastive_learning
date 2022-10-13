@@ -29,7 +29,7 @@ def search_rc_policy(args, train_loader, model, contrast, criterion_l, criterion
             for i in range(batch_size):
                 base_loss = torch.cat((base_loss, criterion_l(out_l[i].unsqueeze(0)) + criterion_ab(out_ab[i].unsqueeze(0))), dim=0)
             base_loss = base_loss.unsqueeze(1)
-            print("check base loss", base_loss)
+            # print("check base loss", base_loss)
         for step in range(args.max_step):
             actions = rc_agent.select_action(states)  # tensor [batch_size, action_dim]
 
@@ -49,9 +49,9 @@ def search_rc_policy(args, train_loader, model, contrast, criterion_l, criterion
                 for i in range(batch_size):
                     next_loss = torch.cat((next_loss, criterion_l(out_l[i].unsqueeze(0))+criterion_ab(out_ab[i].unsqueeze(0))), dim=0)
                 next_loss = next_loss.unsqueeze(1)
-            # print("check loss", base_loss, next_loss)
+            # print("check loss", next_loss)
             reward = 1/(abs(next_loss - base_loss+args.max_range) + args.epsilon)
-            print("check reward", reward)
+            # print("check reward", reward)
 
             if step == args.max_step-1:
                 done = torch.zeros((batch_size, 1)).cuda()
@@ -93,7 +93,6 @@ def search_hf_policy(args, train_loader, model, contrast, criterion_l, criterion
             for i in range(batch_size):
                 base_loss = torch.cat((base_loss, criterion_l(out_l[i].unsqueeze(0)) + criterion_ab(out_ab[i].unsqueeze(0))), dim=0)
             base_loss = base_loss.unsqueeze(1)
-            print("check base loss", base_loss)
         for step in range(args.max_step):
             actions = hf_agent.select_action(states)  # tensor [batch_size, action_dim]
 
@@ -110,8 +109,9 @@ def search_hf_policy(args, train_loader, model, contrast, criterion_l, criterion
                 for i in range(batch_size):
                     next_loss = torch.cat((next_loss, criterion_l(out_l[i].unsqueeze(0))+criterion_ab(out_ab[i].unsqueeze(0))), dim=0)
                 next_loss = next_loss.unsqueeze(1)
+            # print(next_loss)
             reward = 1/(abs(next_loss - base_loss+args.max_range) + args.epsilon)
-            print("check reward", reward)
+            # print("check reward", reward)
 
             if step == args.max_step-1:
                 done = torch.zeros((batch_size, 1)).cuda()
@@ -154,7 +154,7 @@ def search_main_policy(args, train_loader, model, contrast, criterion_l, criteri
                 base_loss = torch.cat(
                     (base_loss, criterion_l(out_l[i].unsqueeze(0)) + criterion_ab(out_ab[i].unsqueeze(0))), dim=0)
             base_loss = base_loss.unsqueeze(1)
-            print("check base loss", base_loss)
+            # print("check base loss", base_loss)
         for step in range(args.max_step):
             actions = policy_agent.select_action(states)  # tensor [batch_size, action_dim]
 
@@ -184,7 +184,7 @@ def search_main_policy(args, train_loader, model, contrast, criterion_l, criteri
                         (next_loss, criterion_l(out_l[i].unsqueeze(0)) + criterion_ab(out_ab[i].unsqueeze(0))), dim=0)
                 next_loss = next_loss.unsqueeze(1)
             reward = 1 / (abs(next_loss - base_loss + args.max_range) + args.epsilon)
-            print("check reward", reward)
+            # print("check reward", reward)
 
             if step == args.max_step - 1:
                 done = torch.zeros((batch_size, 1)).cuda()
