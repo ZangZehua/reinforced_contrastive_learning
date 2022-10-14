@@ -79,7 +79,7 @@ class PPO:
             a3 = torch.round(224 - action[:, 3] * self.args.projection_range - action[:, 1] * self.args.projection_range).unsqueeze(0)
             action = torch.cat((a0, a1, a2, a3), dim=0).transpose(0, 1).squeeze(0).int()
         else:
-            action = model_action.sample()
+            action = model_action
         return action
 
     def reward_scaling(self, lambd=1):
