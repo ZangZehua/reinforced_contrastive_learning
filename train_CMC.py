@@ -17,7 +17,7 @@ import tensorboard_logger as tb_logger
 from torchvision import transforms
 from dataset import RGB2Lab, RGB2YCbCr, ImageFolderInstance
 from util import adjust_learning_rate, AverageMeter
-from util import search_main_policy, search_hf_policy, search_rc_policy
+from util import search_main_policy, search_hf_policy, search_rc_policy, generate_batch
 
 from models.alexnet import MyAlexNetCMC
 from models.ppo_agent import PPO
@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=256, help='batch_size')
     parser.add_argument('--num_workers', type=int, default=8, help='num of workers to use')
     parser.add_argument('--epochs', type=int, default=240, help='number of training epochs')
-    parser.add_argument('--print_freq', type=int, default=5, help='print frequency')
+    parser.add_argument('--print_freq', type=int, default=10, help='print frequency')
     parser.add_argument('--tb_freq', type=int, default=500, help='tb frequency')
     parser.add_argument('--save_freq', type=int, default=5, help='save frequency')
 
@@ -248,7 +248,7 @@ def set_optimizer(args, model):
     return optimizer
 
 
-def train(epoch, train_loader, model, contrast, criterion_l, criterion_ab, optimizer, args):
+def train(epoch, train_loader, model, contrast, criterion_l, criterion_ab, optimizer, args, rc_agent, hf_agent, main_agent):
     """
     one epoch training
     """
@@ -262,6 +262,7 @@ def train(epoch, train_loader, model, contrast, criterion_l, criterion_ab, optim
     ab_loss_meter = AverageMeter()
     l_prob_meter = AverageMeter()
     ab_prob_meter = AverageMeter()
+    out_rewards_meter = AverageMeter()
 
     end = time.time()
     for idx, (inputs, _, index) in enumerate(train_loader):
@@ -273,6 +274,7 @@ def train(epoch, train_loader, model, contrast, criterion_l, criterion_ab, optim
             index = index.cuda()
             inputs = inputs.cuda()
 
+        inputs, out_rewards = generate_batch(args, inputs, index, model, contrast, criterion_l, criterion_ab, rc_agent, hf_agent, main_agent)
         # ===================forward=====================
         feat_l, feat_ab = model(inputs)
         out_l, out_ab = contrast(feat_l, feat_ab, index)
@@ -294,6 +296,7 @@ def train(epoch, train_loader, model, contrast, criterion_l, criterion_ab, optim
         l_prob_meter.update(l_prob.item(), bsz)
         ab_loss_meter.update(ab_loss.item(), bsz)
         ab_prob_meter.update(ab_prob.item(), bsz)
+        out_rewards_meter.update(out_rewards, bsz)
 
         torch.cuda.synchronize()
         batch_time.update(time.time() - end)
@@ -306,13 +309,14 @@ def train(epoch, train_loader, model, contrast, criterion_l, criterion_ab, optim
                   'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'loss {loss.val:.3f} ({loss.avg:.3f})\t'
                   'l_p {lprobs.val:.3f} ({lprobs.avg:.3f})\t'
-                  'ab_p {abprobs.val:.3f} ({abprobs.avg:.3f})'.format(
+                  'ab_p {abprobs.val:.3f} ({abprobs.avg:.3f})\t'
+                  'out_r {out_r.val:.3f} ({out_r.ave:.3f})'.format(
                 epoch, idx + 1, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, lprobs=l_prob_meter,
-                abprobs=ab_prob_meter))
+                abprobs=ab_prob_meter, out_r=out_rewards_meter))
             sys.stdout.flush()
 
-    return l_loss_meter.avg, l_prob_meter.avg, ab_loss_meter.avg, ab_prob_meter.avg
+    return l_loss_meter.avg, l_prob_meter.avg, ab_loss_meter.avg, ab_prob_meter.avg, out_rewards_meter.avg
 
 
 def main():
@@ -359,8 +363,8 @@ def main():
             rc_reward, hf_reward, main_reward = search_policy(args, train_loader, model, contrast, criterion_l, criterion_ab,
                                                               policy_agent, rc_agent, hf_agent)
         time2 = time.time()
-        l_loss, l_prob, ab_loss, ab_prob = train(epoch, train_loader, model, contrast, criterion_l, criterion_ab,
-                                                 optimizer, args)
+        l_loss, l_prob, ab_loss, ab_prob, out_r = train(epoch, train_loader, model, contrast, criterion_l, criterion_ab,
+                                                 optimizer, args, rc_agent, hf_agent, policy_agent)
         time3 = time.time()
         print('epoch {}, total time {:.2f}, {:.2f}'.format(epoch, time2 - time1, time3 - time2))
 
@@ -372,6 +376,7 @@ def main():
         logger.log_value('main_reward', main_reward, epoch)
         logger.log_value('rc_reward', rc_reward, epoch)
         logger.log_value('hf_reward', hf_reward, epoch)
+        logger.log_value('out_reward', out_r, epoch)
 
         # save model
         if epoch % args.save_freq == 0:

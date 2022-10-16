@@ -65,12 +65,13 @@ class PPO:
             print("WARNING : Calling PPO::decay_action_std() on discrete action space policy")
         print("--------------------------------------------------------------------------------------------")
 
-    def select_action(self, state):
+    def select_action(self, state, train_mode=True):
         with torch.no_grad():
             model_action, action_log_prob = self.old_model.act(state)
-        self.buffer.state = torch.cat((self.buffer.state, state), dim=0)
-        self.buffer.action = torch.cat((self.buffer.action, model_action), dim=0)
-        self.buffer.action_prob = torch.cat((self.buffer.action_prob, action_log_prob), dim=0)
+        if train_mode:
+            self.buffer.state = torch.cat((self.buffer.state, state), dim=0)
+            self.buffer.action = torch.cat((self.buffer.action, model_action), dim=0)
+            self.buffer.action_prob = torch.cat((self.buffer.action_prob, action_log_prob), dim=0)
         if self.continuous:
             action = torch.clamp(model_action, 0, 1).detach().cpu()
             a0 = torch.round(action[:, 0] * self.args.projection_range).unsqueeze(0)
@@ -121,7 +122,6 @@ class PPO:
         for _ in range(self.args.rl_k_epoch):
             # Evaluating old actions and values
             logprobs, state_values, dist_entropy = self.model.evaluate(old_states, old_actions)
-
             # match state_values tensor dimensions with rewards tensor
             state_values = torch.squeeze(state_values)
 
