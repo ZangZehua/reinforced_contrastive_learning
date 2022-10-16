@@ -66,7 +66,7 @@ def search_rc_policy(args, train_loader, model, contrast, criterion_l, criterion
         rc_agent.learn()
         rewards.append(episode_reward.cpu().mean(dim=0).numpy())
     ppo_etime = datetime.datetime.now()
-    print("rc policy found! time:", ppo_etime-ppo_stime)
+    print("rc policy found! time:", ppo_etime-ppo_stime, np.mean(rewards))
     return np.mean(rewards)
 
 
@@ -126,8 +126,8 @@ def search_hf_policy(args, train_loader, model, contrast, criterion_l, criterion
         hf_agent.learn()
         rewards.append(episode_reward.cpu().mean(dim=0).numpy())
     ppo_etime = datetime.datetime.now()
-    print("hf policy found! time:", ppo_etime - ppo_stime)
-    return 0
+    print("hf policy found! time:", ppo_etime - ppo_stime, np.mean(rewards))
+    return np.mean(rewards)
 
 
 def search_main_policy(args, train_loader, model, contrast, criterion_l, criterion_ab, policy_agent, rc_agent, hf_agent):
@@ -160,17 +160,16 @@ def search_main_policy(args, train_loader, model, contrast, criterion_l, criteri
 
             next_inputs = torch.Tensor([]).cuda()
             for i in range(batch_size):
+                # print(actions[i].item())
                 if actions[i].item() == 0:
                     sub_policy = rc_agent.select_action(states[i].unsqueeze(0))  # tensor [batch_size, action_dim]
                     image = transforms.functional.resized_crop(inputs[i],
                                                                sub_policy[0].item(), sub_policy[1].item(),
                                                                sub_policy[2].item(), sub_policy[3].item(),
                                                                [224, 224])
-                elif actions[i].item == 1:
+                elif actions[i].item() == 1:
                     sub_policy = hf_agent.select_action(states[i].unsqueeze(0))  # tensor [batch_size, n_actions]
                     image = transforms.RandomHorizontalFlip(sub_policy.item())(inputs[i])
-                else:
-                    image = None
 
                 next_inputs = torch.cat((next_inputs, image.cuda().unsqueeze(0)), dim=0)
 
@@ -199,8 +198,8 @@ def search_main_policy(args, train_loader, model, contrast, criterion_l, criteri
         policy_agent.learn()
         rewards.append(episode_reward.cpu().mean(dim=0).numpy())
     ppo_etime = datetime.datetime.now()
-    print("main policy found! time:", ppo_etime - ppo_stime)
-    return 0
+    print("main policy found! time:", ppo_etime - ppo_stime, np.mean(rewards))
+    return np.mean(rewards)
 
 
 def adjust_learning_rate(epoch, opt, optimizer):
