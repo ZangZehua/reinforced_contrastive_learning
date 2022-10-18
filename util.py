@@ -205,29 +205,27 @@ def search_main_policy(args, train_loader, model, contrast, criterion_l, criteri
 def generate_batch(args, batch, indexes, model, contrast, criterion_l, criterion_ab, rc_agent, hf_agent, policy_agent):
     out_rewards = []
     outputs = torch.Tensor([]).cuda()
-    for image, index in zip(batch, indexes):
-        image = image.unsqueeze(0)
-        print("check", image.shape)
-        with torch.no_grad():
-            feat_l, feat_ab = model(image)
-            states = torch.cat((feat_l, feat_ab), dim=1)  # tensor [batch_size, feature_dim]
-        for step in range(args.max_step):
-            actions = policy_agent.select_action(states, False)  # tensor [batch_size, action_dim]
-            if actions.item() == 0:
-                sub_policy = rc_agent.select_action(states.unsqueeze(0), False)  # tensor [batch_size, action_dim]
-                image = transforms.functional.resized_crop(image,
+    with torch.no_grad():
+        feat_l, feat_ab = model(batch)
+        states = torch.cat((feat_l, feat_ab), dim=1)
+        actions = policy_agent.select_action(states, False)
+        for i in range(batch.shape[0]):
+            if actions[i].item() == 0:
+                sub_policy = rc_agent.select_action(states[i].unsqueeze(0), False)  # tensor [batch_size, action_dim]
+                image = transforms.functional.resized_crop(batch[i],
                                                            sub_policy[0].item(), sub_policy[1].item(),
                                                            sub_policy[2].item(), sub_policy[3].item(),
                                                            [224, 224])
-            elif actions.item() == 1:
-                sub_policy = hf_agent.select_action(states.unsqueeze(0), False)  # tensor [batch_size, n_actions]
-                image = transforms.RandomHorizontalFlip(sub_policy.item())(image)
-        with torch.no_grad():
-            feat_l, feat_ab = model(image)
-            out_l, out_ab = contrast.get_out_l_ab(feat_l, feat_ab, indexes)
-            out_loss = criterion_l(out_l) + criterion_ab(out_ab)
-            out_rewards.append(out_loss.item())
-        outputs = torch.cat((outputs, image), dim=0)
+            elif actions[i].item() == 1:
+                sub_policy = hf_agent.select_action(states[i].unsqueeze(0), False)  # tensor [batch_size, n_actions]
+                # print(sub_policy, sub_policy.shape)
+                image = transforms.RandomHorizontalFlip(sub_policy.item())(batch[i])
+            outputs = torch.cat((outputs, image.unsqueeze(0)), dim=0)
+
+        feat_l, feat_ab = model(outputs)
+        out_l, out_ab = contrast.get_out_l_ab(feat_l, feat_ab, indexes)
+        out_loss = criterion_l(out_l) + criterion_ab(out_ab)
+        out_rewards.append(out_loss.item())
     return outputs, np.mean(out_rewards)
 
 

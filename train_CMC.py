@@ -312,7 +312,7 @@ def train(epoch, train_loader, model, contrast, criterion_l, criterion_ab, optim
                   'loss {loss.val:.3f} ({loss.avg:.3f})\t'
                   'l_p {lprobs.val:.3f} ({lprobs.avg:.3f})\t'
                   'ab_p {abprobs.val:.3f} ({abprobs.avg:.3f})\t'
-                  'out_r {out_r.val:.3f} ({out_r.ave:.3f})'.format(
+                  'out_r {out_r.val:.3f} ({out_r.avg:.3f})'.format(
                 epoch, idx + 1, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, lprobs=l_prob_meter,
                 abprobs=ab_prob_meter, out_r=out_rewards_meter))
