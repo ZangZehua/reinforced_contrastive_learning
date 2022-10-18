@@ -205,6 +205,8 @@ def search_policy(args, train_loader, model, contrast, criterion_l, criterion_ab
     hf_reward = search_hf_policy(args, train_loader, model, contrast, criterion_l, criterion_ab, hf_agent)
     main_reward = search_main_policy(args, train_loader, model, contrast, criterion_l, criterion_ab, policy_agent,
                                      rc_agent, hf_agent)
+    # rc_reward = 0
+    # hf_reward = 0
     policy_agent.model.eval()
     rc_agent.model.eval()
     hf_agent.model.eval()

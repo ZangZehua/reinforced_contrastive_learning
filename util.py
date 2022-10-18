@@ -207,6 +207,7 @@ def generate_batch(args, batch, indexes, model, contrast, criterion_l, criterion
     outputs = torch.Tensor([]).cuda()
     for image, index in zip(batch, indexes):
         image = image.unsqueeze(0)
+        print("check", image.shape)
         with torch.no_grad():
             feat_l, feat_ab = model(image)
             states = torch.cat((feat_l, feat_ab), dim=1)  # tensor [batch_size, feature_dim]
