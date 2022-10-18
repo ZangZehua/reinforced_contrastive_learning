@@ -156,19 +156,19 @@ def search_main_policy(args, train_loader, model, contrast, criterion_l, criteri
             base_loss = base_loss.unsqueeze(1)
             # print("check base loss", base_loss)
         for step in range(args.max_step):
-            actions = policy_agent.select_action(states, False)  # tensor [batch_size, action_dim]
+            actions = policy_agent.select_action(states)  # tensor [batch_size, action_dim]
 
             next_inputs = torch.Tensor([]).cuda()
             for i in range(batch_size):
                 # print(actions[i].item())
                 if actions[i].item() == 0:
-                    sub_policy = rc_agent.select_action(states[i].unsqueeze(0))  # tensor [batch_size, action_dim]
+                    sub_policy = rc_agent.select_action(states[i].unsqueeze(0), False)  # tensor [batch_size, action_dim]
                     image = transforms.functional.resized_crop(inputs[i],
                                                                sub_policy[0].item(), sub_policy[1].item(),
                                                                sub_policy[2].item(), sub_policy[3].item(),
                                                                [224, 224])
                 elif actions[i].item() == 1:
-                    sub_policy = hf_agent.select_action(states[i].unsqueeze(0))  # tensor [batch_size, n_actions]
+                    sub_policy = hf_agent.select_action(states[i].unsqueeze(0), False)  # tensor [batch_size, n_actions]
                     image = transforms.RandomHorizontalFlip(sub_policy.item())(inputs[i])
 
                 next_inputs = torch.cat((next_inputs, image.cuda().unsqueeze(0)), dim=0)
@@ -210,17 +210,16 @@ def generate_batch(args, batch, indexes, model, contrast, criterion_l, criterion
         with torch.no_grad():
             feat_l, feat_ab = model(image)
             states = torch.cat((feat_l, feat_ab), dim=1)  # tensor [batch_size, feature_dim]
-            out_l, out_ab = contrast.get_out_l_ab(feat_l, feat_ab, indexes)
         for step in range(args.max_step):
             actions = policy_agent.select_action(states, False)  # tensor [batch_size, action_dim]
             if actions.item() == 0:
-                sub_policy = rc_agent.select_action(states.unsqueeze(0))  # tensor [batch_size, action_dim]
+                sub_policy = rc_agent.select_action(states.unsqueeze(0), False)  # tensor [batch_size, action_dim]
                 image = transforms.functional.resized_crop(image,
                                                            sub_policy[0].item(), sub_policy[1].item(),
                                                            sub_policy[2].item(), sub_policy[3].item(),
                                                            [224, 224])
             elif actions.item() == 1:
-                sub_policy = hf_agent.select_action(states.unsqueeze(0))  # tensor [batch_size, n_actions]
+                sub_policy = hf_agent.select_action(states.unsqueeze(0), False)  # tensor [batch_size, n_actions]
                 image = transforms.RandomHorizontalFlip(sub_policy.item())(image)
         with torch.no_grad():
             feat_l, feat_ab = model(image)
